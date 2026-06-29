@@ -27,7 +27,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
-          aws s3 sync dist/ s3://tu-bucket-de-deploy/frontend-files/
+          aws s3 sync dist/ s3://innovatech-deploy-bucket-2026/frontend-files/
 
       - name: Desplegar en EC2 via SSM
         env:
