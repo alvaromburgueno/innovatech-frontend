@@ -1,8 +1,8 @@
-name: Deploy Backend Ventas to EC2
+name: Deploy Frontend to EC2
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main" ] # Cambiar a "principal" si tu rama por defecto se llama así
 
 jobs:
   deploy:
@@ -12,41 +12,25 @@ jobs:
     - name: Checkout del código
       uses: actions/checkout@v4
 
-    - name: Configurar JDK 17
-      uses: actions/setup-java@v4
+    - name: Configurar Node.js
+      uses: actions/setup-node@v4
       with:
-        java-version: '17' # Asegúrate de que coincida con la versión de tu proyecto
-        distribution: 'temurin'
-        cache: 'maven'
+        node-version: '20'
+        cache: 'npm'
 
-    - name: Dar permisos de ejecución al Maven Wrapper
-      run: chmod +x mvnw
+    - name: Instalar dependencias
+      run: npm ci # Usa 'npm ci' en entornos de CI para instalaciones limpias y exactas
 
-    - name: Compilar y empaquetar con Maven
-      run: ./mvnw clean package -DskipTests
+    - name: Compilar proyecto (Build)
+      run: npm run build
 
-    - name: Copiar JAR a la EC2
+    - name: Copiar archivos a la EC2 (Nginx)
       uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
-        source: "target/*.jar"
-        target: "/home/ssm-user/app/ventas/"
-        strip_components: 1
-
-    # Opcional pero recomendado: Comando para ejecutar/reiniciar la app en segundo plano
-    - name: Ejecutar la aplicación en la EC2
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
-        script: |
-          cd /home/ssm-user/app/ventas/
-          # Matar el proceso anterior si existe para liberar el puerto
-          pkill -f 'ventas.*.jar' || true
-          # Ejecutar en segundo plano (nohup)
-          nohup java -jar *.jar > app.log 2>&1 &
+        source: "dist/*"
+        target: "/usr/share/nginx/html/"
+        strip_components: 1 # Evita que se cree la carpeta 'dist/' dentro de la ruta de Nginx
